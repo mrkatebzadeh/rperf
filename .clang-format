@@ -1,0 +1,8 @@
+﻿---
+BasedOnStyle: Google
+AlignAfterOpenBracket: DontAlign
+AlignConsecutiveAssignments: 'true'
+AlignOperands: 'true'
+ColumnLimit: '80'
+IndentWidth: 4
+...

@@ -1,0 +1,42 @@
+# Object files
+*.o
+*.ko
+*.obj
+*.elf
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+rdmalatency
+.clang_complete
+
+# Debug files
+*.dSYM/
+*.su
+
+# Output files
+*.log
+
+build/*
+compile_commands.json
+.ccls-cache/

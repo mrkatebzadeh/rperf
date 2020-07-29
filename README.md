@@ -29,7 +29,7 @@ Before you install RPerf, you must have the following libraries:
 
 Clone the repository:
 ```
-git clone https://github.com/mrkatebzadeh/rperf_c.git
+git clone https://github.com/ease-lab/rperf_c.git
 ```
 Then you can simply make the package:
 ```

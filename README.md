@@ -29,11 +29,11 @@ Before you install RPerf, you must have the following libraries:
 
 Clone the repository:
 ```
-git clone https://github.com/ease-lab/rperf_c.git
+git clone https://github.com/ease-lab/rperf.git
 ```
 Then you can simply make the package:
 ```
-cd rperf_c
+cd rperf
 mkdir build
 cd build
 cmake .. && make

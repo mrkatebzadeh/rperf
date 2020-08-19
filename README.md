@@ -15,7 +15,7 @@
 
 ## RPerf ##
 
-This package provides an accurate benchmark tools for **RDMA**-based networks.
+This package provides an accurate benchmark tool for **RDMA**-based networks.
 
 ## Prerequisites ##
 

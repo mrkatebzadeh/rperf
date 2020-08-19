@@ -1,6 +1,6 @@
 -------------------------------------------------------------------------------
 
-# RPerf: Accurate Latency Measurement for RDMA #
+# RPerf: Accurate Latency Measurement Framework for RDMA #
 
 -------------------------------------------------------------------------------
 

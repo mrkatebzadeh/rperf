@@ -47,12 +47,21 @@
 
 double g_ticks_per_ns;
 
+#if defined(__X86_64__) || defined(__i386__) || defined(__i386) || defined(_M_IX86)
 // assembly code to read the TSC
 static inline uint64_t RDTSC() {
     unsigned int hi, lo;
     __asm__ volatile("rdtsc" : "=a"(lo), "=d"(hi));
     return ((uint64_t)hi << 32) | lo;
 }
+#elif defined(__aarch64__) || defined(_M_ARM64)
+// assembly code to read the TSC
+static inline uint64_t RDTSC() {
+    unsigned int lo;
+    __asm__ __volatile__ ("mrs %0, cntvct_el0" : "=r" (lo));
+    return lo;
+}
+#endif
 
 static const int NANO_SECONDS_IN_SEC = 1000000000;
 // returns a static buffer of struct timespec with the time difference of

@@ -61,6 +61,10 @@ static inline uint64_t RDTSC() {
     __asm__ __volatile__ ("mrs %0, cntvct_el0" : "=r" (lo));
     return lo;
 }
+#else // not intel or arm 
+static inline uint64_t RDTSC() {
+    return 0;
+}
 #endif
 
 static const int NANO_SECONDS_IN_SEC = 1000000000;

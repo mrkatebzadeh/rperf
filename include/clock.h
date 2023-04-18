@@ -45,7 +45,7 @@
 #define ENABLE_STATIC_TICKS_PER_NS 1
 #define RDTSC_TYPICAL_TICKS_PER_NS 2.2
 
-double g_ticks_per_ns;
+extern double g_ticks_per_ns;
 
 #if defined(__X86_64__) || defined(__i386__) || defined(__i386) || defined(_M_IX86)
 // assembly code to read the TSC

@@ -34,23 +34,18 @@ git clone https://github.com/ease-lab/rperf.git
 Then you can simply make the package:
 ```
 cd rperf
-mkdir build
-cd build
-cmake .. && make
+cmake -H. -Bbuild -G "Unix Makefiles"
+cmake --build build -j4
 ```
 
 ## Configuration ##
 
-RPerf by default locates *rdmarc* file in the working directory. This file contains test parameters. To start, copy the template of config file into build directory:
-```
-cp ../rdmarc .
-```
-Then change the parameters according to what you desire. 
+RPerf by default locates *rdmarc* file in the working directory. This file contains test parameters. Change the parameters according to what you desire. 
 
 ## Running Tests ##
 The simplest way to run with default settings, on the server and clients:
 ```
-./rperf_c 
+./build/rperf_c 
 ```
 Make sure *rdmarc* file on each node has the proper values for __is_server__ and __server_name__ parameters.
 

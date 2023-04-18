@@ -62,6 +62,7 @@
    Use linear regression to calculate cycles per microsecond.
 http://en.wikipedia.org/wiki/Linear_regression#Parameter_estimation
 */
+double g_ticks_per_ns;
 static double sample_get_cpu_mhz(void) {
     struct timeval tv1, tv2;
     uint64_t start;

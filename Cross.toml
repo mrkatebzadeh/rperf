@@ -1,0 +1,7 @@
+[target.aarch64-unknown-linux-gnu]
+image = "mrkatebzadeh/cross-aarch64:v0.1"
+# dockerfile = "docker/aarch64.dockerfile"
+
+[target.x86_64-unknown-linux-gnu]
+image = "mrkatebzadeh/cross-x86_64:v0.1"
+# dockerfile = "docker/x86_64.dockerfile"

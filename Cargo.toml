@@ -6,9 +6,15 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.97"
 spdlog-rs = "0.4.1"
-clap = { version = "=4.5.35", features = ["derive"] }
-toml = "0.8.13"
+clap = { version = "=4.5.46", features = ["derive"] }
+toml = "0.9.5"
 rrddmma = { git = "https://github.com/mrkatebzadeh/rrddmma.git", branch = "master" }
 core_affinity = "0.8.3"
 hugepage-rs = "0.1.0"
 serde = { version = "1.0", features = ["derive"]}
+calcmhz = "0.1.10"
+thread-priority = "1.2.0"
+dashmap = "6.1.0"
+
+[workspace.features]
+hugepage = []

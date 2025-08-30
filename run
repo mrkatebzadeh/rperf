@@ -1,4 +1,0 @@
-#!/bin/sh
-app="rperf"
-[ -n "$(docker images -q ${app})" ] || docker build -f Dockerfile --network host -t ${app} .
-docker run --rm -it --name=${app} --network host -v $PWD:/opt/rperf ${app}:latest 

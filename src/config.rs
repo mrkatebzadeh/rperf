@@ -21,13 +21,13 @@
 
 use serde::Deserialize;
 
-#[derive(Deserialize, Debug, Default)]
+#[derive(Deserialize, Debug, Default, Clone)]
 pub(crate) enum TestType {
     #[default]
     AckRTT,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(default)]
 pub(crate) struct Device {
     pub(crate) name: String,
@@ -40,7 +40,7 @@ impl Default for Device {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(default)]
 pub(crate) struct Connection {
     pub(crate) server_port: u16,
@@ -57,7 +57,7 @@ impl Default for Connection {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(default)]
 pub(crate) struct Test {
     pub(crate) test_type: TestType,
@@ -88,7 +88,7 @@ impl Default for Test {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(default)]
 pub(crate) struct RDMAThreads {
     pub(crate) post_send: usize,
@@ -105,7 +105,7 @@ impl Default for RDMAThreads {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(default)]
 pub(crate) struct Output {
     pub(crate) filename: String,
@@ -120,7 +120,7 @@ impl Default for Output {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(default)]
 pub(crate) struct Sample {
     pub(crate) enabled: bool,
@@ -135,7 +135,7 @@ impl Default for Sample {
     }
 }
 
-#[derive(Deserialize, Debug, Default)]
+#[derive(Deserialize, Debug, Default, Clone)]
 #[serde(default)]
 pub(crate) struct BWControl {
     pub(crate) limiter: bool,
@@ -156,7 +156,7 @@ fn default_server_threads() -> RDMAThreads {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(default)]
 pub(crate) struct Config {
     pub(crate) device: Device,

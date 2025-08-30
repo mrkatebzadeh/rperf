@@ -21,7 +21,9 @@
 
 mod args;
 mod client;
+mod collector;
 mod config;
+mod rdma;
 mod server;
 
 use args::Args;

@@ -15,6 +15,7 @@ serde = { version = "1.0", features = ["derive"]}
 calcmhz = "0.1.10"
 thread-priority = "1.2.0"
 dashmap = "6.1.0"
+rand = "0.9.2"
 
 [workspace.features]
 hugepage = []

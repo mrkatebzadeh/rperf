@@ -23,6 +23,7 @@ mod args;
 mod client;
 mod collector;
 mod config;
+mod message;
 mod rdma;
 mod server;
 

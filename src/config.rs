@@ -31,11 +31,13 @@ pub(crate) enum TestType {
 #[serde(default)]
 pub(crate) struct Device {
     pub(crate) name: String,
+    pub(crate) ib_port: u16,
 }
 impl Default for Device {
     fn default() -> Self {
         Self {
             name: "mlx5_0".to_string(),
+            ib_port: 0,
         }
     }
 }

@@ -1,4 +1,4 @@
-/* client.rs
+/* agent.rs
 
 *
 * Author: M.R.Siavash Katebzadeh <mr@katebzadeh.xyz>
@@ -19,19 +19,24 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use crate::Config;
+use spdlog::info;
+use crate::{server::Server, Config};
 
-pub(crate) struct Client {
+pub(crate) struct Agent {
     config: Config,
 }
-impl Client {
+impl Agent {
     pub(crate) fn new(config: Config) -> Self {
         Self { config }
     }
 
     pub(crate) fn start(&mut self) -> anyhow::Result<()> {
+        info!("Agent: server binding.");
+        let mut server = Server::bind(self.config.clone())?;
+        let adaptor = server.accept()?;
+
         Ok(())
     }
 }
 
-/* client.rs ends here */
+/* agent.rs ends here */

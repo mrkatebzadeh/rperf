@@ -1,4 +1,4 @@
-/* rdma.rs
+/* adaptor.rs
 
 *
 * Author: M.R.Siavash Katebzadeh <mr@katebzadeh.xyz>
@@ -43,7 +43,7 @@ const HUGEPAGE_SIZE: usize = 2 * 1024 * 1024;
 /// This struct manages the RDMA resources necessary for sending and receiving messages
 /// over an RDMA network, including the configuration, queue pairs, and memory regions.
 #[derive(Clone)]
-pub struct RdmaAdaptor {
+pub struct Adaptor {
     pub(crate) config: Config,
     pub(crate) qp: Arc<Qp>,
 
@@ -58,10 +58,10 @@ pub struct RdmaAdaptor {
     pub(crate) rx_collector: Arc<SampleCollector>,
 }
 
-unsafe impl Sync for RdmaAdaptor {}
-unsafe impl Send for RdmaAdaptor {}
+unsafe impl Sync for Adaptor {}
+unsafe impl Send for Adaptor {}
 
-impl RdmaAdaptor {
+impl Adaptor {
     /// Polls the completion queue for a specified number of completions.
     ///
     /// This function will block until the specified number of completions have been
@@ -227,7 +227,7 @@ impl RdmaAdaptor {
     ///
     /// This function sets up the RDMA resources based on the provided configuration
     /// and establishes a connection to the remote server using the RDMA network.
-    fn connect(config: Config) -> anyhow::Result<Self>
+    pub fn connect(config: Config) -> anyhow::Result<Self>
     where
         Self: Sized,
     {
@@ -247,8 +247,8 @@ impl RdmaAdaptor {
 
         let qp = Arc::new(qp);
 
-        let tx_buf = RdmaAdaptor::buffer_allocate(msg_size * tx_depth);
-        let rx_buf = RdmaAdaptor::buffer_allocate(msg_size * rx_depth);
+        let tx_buf = Adaptor::buffer_allocate(msg_size * tx_depth);
+        let rx_buf = Adaptor::buffer_allocate(msg_size * rx_depth);
 
         let send_mr = unsafe {
             Mr::reg(qp.pd(), tx_buf, msg_size * tx_depth, Permission::default())
@@ -287,7 +287,7 @@ impl RdmaAdaptor {
     ///
     /// This function posts initial receive requests to the queue pair and ensures
     /// the RDMA adapter is ready to send and receive messages.
-    fn setup(&self) -> anyhow::Result<()> {
+    pub fn setup(&self) -> anyhow::Result<()> {
         for index in 0..self.config.test.rx_depth {
             self.post_recv(index);
         }
@@ -341,7 +341,7 @@ impl RdmaAdaptor {
     }
 }
 
-impl Drop for RdmaAdaptor {
+impl Drop for Adaptor {
     /// Cleans up RDMA resources upon dropping the adaptors.
     ///
     /// This function deallocates any memory buffers and logs performance metrics
@@ -390,4 +390,4 @@ impl Drop for RdmaAdaptor {
         }
     }
 }
-/* rdma.rs ends here */
+/* adaptor.rs ends here */

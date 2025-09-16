@@ -19,19 +19,20 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+mod adaptor;
+mod agent;
 mod args;
-mod client;
 mod collector;
 mod config;
 mod message;
-mod rdma;
+mod probe;
 mod server;
 
+use agent::Agent;
 use args::Args;
 use clap::Parser;
-use client::Client;
 use config::Config;
-use server::Server;
+use probe::Probe;
 use spdlog::{self, info, Level, LevelFilter, Logger};
 use std::fs;
 use std::path::Path;
@@ -40,10 +41,10 @@ use std::sync::Arc;
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
 
-    let path = Path::new(&args.config);
-    let raw = fs::read_to_string(path)?;
-
-    let config: Config = toml::from_str(&raw)?;
+    let config = match fs::read_to_string(Path::new(&args.config)) {
+        Ok(raw) => toml::from_str(&raw)?,
+        Err(_) => Config::default(),
+    };
 
     let level = match args.verbose {
         0 => Level::Warn,
@@ -55,15 +56,15 @@ fn main() -> anyhow::Result<()> {
     let default_logger: Arc<Logger> = spdlog::default_logger();
     default_logger.set_level_filter(LevelFilter::MoreSevereEqual(level));
 
-    info!("{}", args);
-    info!("Parsed config from {}:\n{:#?}", path.display(), config);
+    info!("Args: {}", &args);
+    info!("Config: {:?}", &config);
 
-    if config.is_server {
-        let mut server = Server::new(config);
-        server.start()
+    if config.is_agent {
+        let mut agent = Agent::new(config);
+        agent.start()
     } else {
-        let mut client = Client::new(config);
-        client.start()
+        let mut probe = Probe::new(config);
+        probe.start()
     }
 }
 

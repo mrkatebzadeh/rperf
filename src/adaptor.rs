@@ -66,7 +66,7 @@ impl Adaptor {
     ///
     /// This function will block until the specified number of completions have been
     /// polled from the send completion queue.
-    fn poll_poll_cq(&self, num: usize) {
+    pub fn poll_cq(&self, num: usize) {
         let mut remaining = num;
         loop {
             let polled = match self.qp.scq().poll_some(remaining as u32) {
@@ -84,7 +84,7 @@ impl Adaptor {
     ///
     /// This function prepares the memory region for receiving a message and posts
     /// a receive work request to the queue pair.
-    fn post_recv(&self, index: usize) {
+    pub fn post_recv(&self, index: usize) {
         let start = index * self.config.test.msg_size;
         let mr_slice = unsafe { self.rx.slice_unchecked(start, self.config.test.msg_size) };
         self.qp
@@ -127,12 +127,11 @@ impl Adaptor {
     ///
     /// This function sends a series of messages over RDMA, managing the necessary
     /// work requests and handling the completion notifications.
-    fn write(&self, batch: &[Message]) {
+    pub fn write(&self, batch: &[Message]) {
         let mut rng = rand::rng();
         let sample_id: u64 = rng.random();
 
         let msg_size = self.config.test.msg_size;
-        self.tx_collector.sample_start(sample_id);
 
         let mut wrs = Vec::with_capacity(batch.len());
         let mut prev_index: Option<usize> = None;
@@ -165,20 +164,23 @@ impl Adaptor {
                 msg_size * batch.len(),
             );
         }
+        debug!("Agent: posting a send");
+        self.tx_collector.sample_start(sample_id);
 
         wrs[0]
             .post_on(&self.qp)
             .expect("Network (RDMA) post a Send request");
-        self.poll_poll_cq(batch.len());
+        self.poll_cq(batch.len());
 
         self.tx_collector.sample_end(sample_id);
+        debug!("Agent: a send is polled");
     }
 
     /// Reads a batch of messages from the RDMA network.
     ///
     /// This function polls the receive completion queue and retrieves a batch of
     /// received messages, handling any necessary parsing and buffer management.
-    fn read(&self) -> Vec<Message> {
+    pub fn read(&self) -> Vec<Message> {
         let mut msgs = vec![];
         let mut rng = rand::rng();
         let sample_id: u64 = rng.random();
@@ -231,14 +233,14 @@ impl Adaptor {
     where
         Self: Sized,
     {
-        let mut qp = Self::make_qp(&config)?;
+        let mut qp = Self::make_qp(&config).context("make qp")?;
         let ip = config.connection.server_addr.as_str();
         let port = config.connection.server_port;
         let msg_size = config.test.msg_size;
         let tx_depth = config.test.tx_depth;
         let rx_depth = config.test.rx_depth;
 
-        let ip4addr = Ipv4Addr::from_str(ip)?;
+        let ip4addr = Ipv4Addr::from_str(ip).context("ipv4")?;
         ctrl::Connecter::new_on_port(Some(ip4addr), port)
             .context("connector new on port")?
             .connect(&mut qp)
@@ -306,6 +308,7 @@ impl Adaptor {
         let rx_depth = config.test.rx_depth;
         let ib_port = config.device.ib_port;
 
+        info!("Network (RDMA) Searching for {dev}");
         let Nic { context, ports } = Nic::finder()
             .dev_name(dev)
             .probe()

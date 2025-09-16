@@ -18,10 +18,6 @@ ifdef RELEASE
 	TARPATH := release
 endif
 
-ifdef COLLECT
-	FLAGS += --features collect
-endif
-
 ifdef HUGEPAGE
 	FLAGS += --features hugepage
 endif

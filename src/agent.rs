@@ -19,6 +19,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+use std::thread;
 use spdlog::info;
 use crate::{server::Server, Config};
 
@@ -33,7 +34,13 @@ impl Agent {
     pub(crate) fn start(&mut self) -> anyhow::Result<()> {
         info!("Agent: server binding.");
         let mut server = Server::bind(self.config.clone())?;
-        let adaptor = server.accept()?;
+        loop {
+            let adaptor = server.accept()?;
+
+            thread::spawn(move || {
+                let _ = adaptor.read();
+            });
+        }
 
         Ok(())
     }

@@ -47,14 +47,12 @@ impl Default for Device {
 pub(crate) struct Connection {
     pub(crate) server_port: u16,
     pub(crate) server_addr: String,
-    pub(crate) is_server: bool,
 }
 impl Default for Connection {
     fn default() -> Self {
         Self {
             server_port: 9999,
-            server_addr: "localhost".to_string(),
-            is_server: false,
+            server_addr: "0.0.0.0".to_string(),
         }
     }
 }
@@ -173,7 +171,7 @@ pub(crate) struct Config {
     pub(crate) output: Output,
     pub(crate) sample: Sample,
     pub(crate) bw_control: BWControl,
-    pub(crate) is_server: bool,
+    pub(crate) is_agent: bool,
 }
 impl Default for Config {
     fn default() -> Self {
@@ -186,7 +184,7 @@ impl Default for Config {
             output: Output::default(),
             sample: Sample::default(),
             bw_control: BWControl::default(),
-            is_server: false,
+            is_agent: false,
         }
     }
 }

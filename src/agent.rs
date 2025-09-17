@@ -19,9 +19,9 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use std::thread;
-use spdlog::info;
 use crate::{server::Server, Config};
+use spdlog::info;
+use std::thread;
 
 pub(crate) struct Agent {
     config: Config,
@@ -37,7 +37,7 @@ impl Agent {
         loop {
             let adaptor = server.accept()?;
 
-            thread::spawn(move || {
+            thread::spawn(move || loop {
                 let _ = adaptor.read();
             });
         }

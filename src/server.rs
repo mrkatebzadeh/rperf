@@ -24,8 +24,8 @@ use crate::collector::SampleCollector;
 use crate::Config;
 use anyhow::{bail, Context};
 use rrddmma::ctrl::Connecter;
-use rrddmma::prelude::Mr;
-use rrddmma::rdma::mr::Permission;
+use rrddmma::lo::prelude::Mr;
+use rrddmma::lo::mr::Permission;
 use spdlog::{info, trace};
 use std::sync::Arc;
 
@@ -80,9 +80,9 @@ impl Server {
         let tx = Arc::new(send_mr);
         let rx = Arc::new(recv_mr);
 
-        let rx_collector = Arc::new(SampleCollector::new(0));
+        let rx_collector = Arc::new(SampleCollector::new(0, "server_rx_times.csv"));
 
-        let tx_collector = Arc::new(SampleCollector::new(0));
+        let tx_collector = Arc::new(SampleCollector::new(0, "server_tx_times.csv"));
 
         let adaptor = Adaptor {
             config: self.config.clone(),

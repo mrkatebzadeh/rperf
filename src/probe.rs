@@ -19,7 +19,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use crate::{adaptor::Adaptor, Config};
+use crate::{adaptor::Adaptor, message::Message, Config};
 
 pub(crate) struct Probe {
     config: Config,
@@ -31,6 +31,14 @@ impl Probe {
 
     pub(crate) fn start(&mut self) -> anyhow::Result<()> {
         let mut adaptor = Adaptor::connect(self.config.clone())?;
+        let total_iters = self.config.test.iterations;
+        let warmup_iters = (total_iters as f64 * 0.1).ceil() as usize;
+        for id in 0..warmup_iters {
+            adaptor.write(&[Message::new(self.config.test.msg_size, id as u64)], true);
+        }
+        for id in 0..total_iters {
+            adaptor.write(&[Message::new(self.config.test.msg_size, id as u64)], false);
+        }
         Ok(())
     }
 }

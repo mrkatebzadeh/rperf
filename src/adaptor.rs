@@ -54,8 +54,8 @@ pub struct Adaptor {
 
     pub(crate) tx: Arc<Mr>,
     pub(crate) rx: Arc<Mr>,
-    pub(crate) tx_collector: Arc<SampleCollector>,
-    pub(crate) rx_collector: Arc<SampleCollector>,
+    pub(crate) tx_collector: SampleCollector,
+    pub(crate) rx_collector: SampleCollector,
 }
 
 unsafe impl Sync for Adaptor {}
@@ -130,7 +130,7 @@ impl Adaptor {
     ///
     /// This function sends a series of messages over RDMA, managing the necessary
     /// work requests and handling the completion notifications.
-    pub fn write(&mut self, batch: &[Message], warmup: bool) {
+    pub fn get_rtt(&mut self, batch: &[Message]) -> u64 {
         let mut rng = rand::rng();
 
         let msg_size = self.config.test.msg_size;
@@ -166,18 +166,15 @@ impl Adaptor {
                 msg_size * batch.len(),
             );
         }
-        let mut start = 0;
-        if !warmup {
-            start = self.tx_collector.sample();
-        }
+        let mut start = self.tx_collector.sample();
 
         wrs[0].post_on(&self.qp);
         // self.poll_cq(batch.len());
         self.qp.scq().poll_some(1, true);
 
-        if !warmup {
-            self.tx_collector.insert(self.tx_collector.sample() - start);
-        }
+        let rtt = self.tx_collector.sample() - start;
+
+        rtt
     }
 
     /// Reads a batch of messages from the RDMA network.
@@ -190,7 +187,7 @@ impl Adaptor {
         let msg_size = self.config.test.msg_size;
         let rx_depth = self.config.test.rx_depth;
 
-        let wcs = match self.qp.rcq().poll_some(rx_depth, true) {
+        let wcs = match self.qp.rcq().poll_some(1, false) {
             Ok(wcs) => wcs,
             Err(e) => panic!("Network (RDMA): Failed to read: {:?}", e),
         };
@@ -262,8 +259,8 @@ impl Adaptor {
         let tx = Arc::new(send_mr);
         let rx = Arc::new(recv_mr);
 
-        let rx_collector = Arc::new(SampleCollector::new(0, "rx_times.csv"));
-        let tx_collector = Arc::new(SampleCollector::new(0, "tx_times.csv"));
+        let rx_collector = SampleCollector::new(0, "rx_times.csv");
+        let tx_collector = SampleCollector::new(0, "tx_times.csv");
 
         tx_collector.record_start();
         rx_collector.record_start();
@@ -349,7 +346,6 @@ impl Drop for Adaptor {
     /// before the RDMA adaptor is dropped.
     fn drop(&mut self) {
         self.tx_collector.record_end();
-        self.tx_collector.dump_csv();
         let duration = self.tx_collector.duration();
         let median_latency = self.tx_collector.quantile_latency(50.0);
         info!(

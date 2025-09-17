@@ -87,6 +87,17 @@ impl Probe {
             .dump_csv()
             .expect("failed to dump");
         info!("Test finished");
+
+        let median = wire_adaptor.tx_collector.quantile_latency(0.5);
+        let tail = wire_adaptor.tx_collector.quantile_latency(0.99);
+
+        println!(
+            "Test result for {} iters=> 50th: {:?}, 99th: {:?} ",
+            total_iters,
+            median.unwrap(),
+            tail.unwrap(),
+        );
+
         running.store(false, Ordering::Relaxed);
         std::mem::drop(srv_handler);
         Ok(())

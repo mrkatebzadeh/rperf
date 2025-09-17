@@ -23,6 +23,7 @@ use std::{
     collections::BTreeMap,
     fs::File,
     io::{BufWriter, Write},
+    ptr::without_provenance,
     sync::{
         atomic::{AtomicU64, Ordering},
         Arc, Mutex,
@@ -80,25 +81,31 @@ fn cycles_to_nanos(cycles: u64, freq: u64) -> u64 {
     cycles.saturating_mul(1_000_000_000) / freq
 }
 
+#[derive(Clone)]
+pub struct Sample {
+    pub wire_rtt: u64,
+    pub loop_rtt: u64,
+}
+
 #[allow(unused)]
 #[derive(Clone)]
 pub struct SampleCollector {
-    samples: Arc<Mutex<Vec<u64>>>,
+    samples: Vec<Sample>,
     start: Arc<Mutex<Option<Instant>>>,
     end: Arc<Mutex<Option<Instant>>>,
     size: Arc<AtomicU64>,
-    filename: Arc<Mutex<String>>,
+    filename: String,
 }
 
 impl SampleCollector {
     #[allow(unused)]
     pub fn new(size: u64, filename: impl AsRef<str>) -> Self {
         Self {
-            samples: Arc::new(Mutex::new(vec![])),
+            samples: vec![],
             start: Arc::new(Mutex::new(None)),
             end: Arc::new(Mutex::new(None)),
             size: Arc::new(AtomicU64::new(size)),
-            filename: Arc::new(Mutex::new(filename.as_ref().to_owned())),
+            filename: filename.as_ref().to_owned(),
         }
     }
 
@@ -130,19 +137,23 @@ impl SampleCollector {
         rdtsc()
     }
 
-    pub fn insert(&self, sample: u64) {
-        let mut samples_guard = self.samples.lock().unwrap();
-        samples_guard.push(sample);
+    pub fn insert(&mut self, sample: (u64, u64)) {
+        self.samples.push(Sample {
+            wire_rtt: sample.0,
+            loop_rtt: sample.1,
+        });
     }
 
     #[allow(unused)]
     pub fn print_latency_histogram(&self) {
         let freq = counter_freq();
-        let latencies = self.samples.lock().unwrap();
+        let latencies = self.samples.clone();
         let mut histogram: BTreeMap<u64, u32> = BTreeMap::new();
 
         for entry in latencies.iter() {
-            *histogram.entry(*entry).or_insert(0) += 1;
+            *histogram
+                .entry(entry.wire_rtt - entry.loop_rtt)
+                .or_insert(0) += 1;
         }
 
         println!("Latency Histogram (ns):");
@@ -157,9 +168,9 @@ impl SampleCollector {
         let mut total_cycles = 0u128;
         let mut count = 0u128;
 
-        let latencies = self.samples.lock().unwrap();
+        let latencies = self.samples.clone();
         for entry in latencies.iter() {
-            total_cycles += *entry as u128;
+            total_cycles += (entry.wire_rtt - entry.loop_rtt) as u128;
         }
 
         if count > 0 {
@@ -173,7 +184,11 @@ impl SampleCollector {
     #[allow(unused)]
     pub fn quantile_latency(&self, quantile: f64) -> Option<std::time::Duration> {
         let freq = counter_freq();
-        let mut latencies = self.samples.lock().unwrap().clone();
+        let mut latencies: Vec<u64> = self
+            .samples
+            .iter()
+            .map(|s| s.wire_rtt.saturating_sub(s.loop_rtt))
+            .collect();
 
         if latencies.is_empty() {
             return None;
@@ -212,15 +227,21 @@ impl SampleCollector {
         }
     }
     pub fn dump_csv(&self) -> anyhow::Result<()> {
-        let filename = self.filename.lock().unwrap();
+        let filename = &self.filename;
         let file = File::create(filename.as_str())?;
         let mut writer = BufWriter::new(file);
 
-        writeln!(writer, "cycles_diff")?;
+        writeln!(writer, "wire_rtt, loop_rtt, cycles_diff")?;
 
-        let latencies = self.samples.lock().unwrap();
+        let latencies = self.samples.clone();
         for entry in latencies.iter() {
-            writeln!(writer, "{}", *entry)?;
+            writeln!(
+                writer,
+                "{},{},{}",
+                entry.wire_rtt,
+                entry.loop_rtt,
+                entry.wire_rtt.saturating_sub(entry.loop_rtt)
+            )?;
         }
 
         writer.flush()?;

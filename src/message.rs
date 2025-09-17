@@ -32,6 +32,7 @@ impl Message {
     ///
     /// * `size` - The size of the buffer.
     /// * `req_id` - The request identifier.
+    #[allow(unused)]
     pub fn new(size: usize, req_id: u64) -> Self {
         Message {
             buf: vec![0; size],
@@ -40,11 +41,13 @@ impl Message {
     }
 
     /// Returns the request ID of the message.
+    #[allow(unused)]
     pub fn req_id(&self) -> u64 {
         self.id
     }
 
     /// Returns a reference to the internal buffer of the message.
+    #[allow(unused)]
     pub fn buffer(&self) -> &Vec<u8> {
         &self.buf
     }

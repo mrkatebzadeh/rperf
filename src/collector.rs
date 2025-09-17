@@ -23,13 +23,13 @@ use std::{
     collections::BTreeMap,
     fs::File,
     io::{BufWriter, Write},
-    ptr::without_provenance,
     sync::{
         atomic::{AtomicU64, Ordering},
         Arc, Mutex,
     },
     time::{Duration, Instant},
 };
+
 
 #[inline]
 pub fn rdtsc() -> u64 {
@@ -165,20 +165,17 @@ impl SampleCollector {
     #[allow(unused)]
     pub fn mean_latency(&self) -> Option<std::time::Duration> {
         let freq = counter_freq();
-        let mut total_cycles = 0u128;
-        let mut count = 0u128;
 
-        let latencies = self.samples.clone();
-        for entry in latencies.iter() {
-            total_cycles += (entry.wire_rtt - entry.loop_rtt) as u128;
-        }
+        let mut latencies: Vec<u128> = self
+            .samples
+            .iter()
+            .map(|s| s.wire_rtt.saturating_sub(s.loop_rtt) as u128)
+            .collect();
+        let total_cycles: u128 = latencies.iter().sum();
 
-        if count > 0 {
-            let nanos = total_cycles.saturating_mul(1_000_000_000) / freq as u128 / count;
-            Some(std::time::Duration::from_nanos(nanos as u64))
-        } else {
-            None
-        }
+        let nanos =
+            total_cycles.saturating_mul(1_000_000_000) / freq as u128 / latencies.len() as u128;
+        Some(std::time::Duration::from_nanos(nanos as u64))
     }
 
     #[allow(unused)]
@@ -187,7 +184,7 @@ impl SampleCollector {
         let mut latencies: Vec<u64> = self
             .samples
             .iter()
-            .map(|s| s.wire_rtt.saturating_sub(s.loop_rtt))
+            .map(|s| s.wire_rtt.saturating_sub(s.loop_rtt) as u64)
             .collect();
 
         if latencies.is_empty() {
@@ -233,8 +230,7 @@ impl SampleCollector {
 
         writeln!(writer, "wire_rtt, loop_rtt, cycles_diff")?;
 
-        let latencies = self.samples.clone();
-        for entry in latencies.iter() {
+        for entry in self.samples.iter() {
             writeln!(
                 writer,
                 "{},{},{}",

@@ -29,7 +29,7 @@ use std::{
 
 use spdlog::info;
 
-use crate::{adaptor::Adaptor, config, message::Message, server::Server, Config};
+use crate::{adaptor::Adaptor, message::Message, server::Server, Config};
 
 pub(crate) struct Probe {
     config: Config,
@@ -82,10 +82,13 @@ impl Probe {
             wire_adaptor.tx_collector.insert((wire_rtt, loop_rtt));
         }
 
-        wire_adaptor.tx_collector.dump_csv();
+        wire_adaptor
+            .tx_collector
+            .dump_csv()
+            .expect("failed to dump");
         info!("Test finished");
         running.store(false, Ordering::Relaxed);
-        srv_handler.join().unwrap();
+        std::mem::drop(srv_handler);
         Ok(())
     }
 }

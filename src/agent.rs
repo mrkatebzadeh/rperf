@@ -33,7 +33,7 @@ impl Agent {
 
     pub(crate) fn start(&mut self) -> anyhow::Result<()> {
         info!("Agent: server binding.");
-        let mut server = Server::bind(self.config.clone())?;
+        let server = Server::bind(self.config.clone())?;
         loop {
             let adaptor = server.accept()?;
 
@@ -41,8 +41,6 @@ impl Agent {
                 let _ = adaptor.read();
             });
         }
-
-        Ok(())
     }
 }
 

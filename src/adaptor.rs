@@ -23,7 +23,6 @@ use crate::collector::SampleCollector;
 use crate::message::Message;
 use crate::Config;
 use anyhow::{bail, Context};
-use rand::Rng;
 use rrddmma::lo::mr::Permission;
 use rrddmma::lo::prelude::{Cq, Nic, Pd, Qp, QpCaps, QpType};
 use rrddmma::lo::prelude::{Mr, SendWr};
@@ -34,9 +33,6 @@ use std::net::Ipv4Addr;
 use std::ptr;
 use std::str::FromStr;
 use std::sync::Arc;
-
-#[cfg(feature = "hugepage")]
-const HUGEPAGE_SIZE: usize = 2 * 1024 * 1024;
 
 /// Represents an RDMA adapter with configuration and queue pair information.
 ///
@@ -55,31 +51,12 @@ pub struct Adaptor {
     pub(crate) tx: Arc<Mr>,
     pub(crate) rx: Arc<Mr>,
     pub(crate) tx_collector: SampleCollector,
-    pub(crate) rx_collector: SampleCollector,
 }
 
 unsafe impl Sync for Adaptor {}
 unsafe impl Send for Adaptor {}
 
 impl Adaptor {
-    /// Polls the completion queue for a specified number of completions.
-    ///
-    /// This function will block until the specified number of completions have been
-    /// polled from the send completion queue.
-    pub fn poll_cq(&self, num: usize) {
-        let mut remaining = num;
-        loop {
-            let polled = match self.qp.scq().poll_some(remaining, true) {
-                Ok(wcs) => wcs.len(),
-                Err(e) => panic!("Network (RDMA): Failed to poll Send CQ: {:?}", e),
-            };
-            remaining -= polled;
-            if remaining == 0 {
-                break;
-            }
-        }
-    }
-
     /// Posts a receive request to the queue pair.
     ///
     /// This function prepares the memory region for receiving a message and posts
@@ -105,7 +82,7 @@ impl Adaptor {
         let layout = Layout::array::<u8>(size).expect("Network (RDMA): Failed to create layout");
         #[cfg(feature = "hugepage")]
         {
-            let ptr = unsafe { hugepage_rs::alloc(layout) as *mut u8 };
+            let ptr = hugepage_rs::alloc(layout) as *mut u8;
 
             if ptr.is_null() {
                 panic!("Network (RDMA): Hugepage allocation failed");
@@ -131,8 +108,6 @@ impl Adaptor {
     /// This function sends a series of messages over RDMA, managing the necessary
     /// work requests and handling the completion notifications.
     pub fn get_rtt(&mut self, batch: &[Message]) -> u64 {
-        let mut rng = rand::rng();
-
         let msg_size = self.config.test.msg_size;
 
         let mut wrs = Vec::with_capacity(batch.len());
@@ -166,11 +141,10 @@ impl Adaptor {
                 msg_size * batch.len(),
             );
         }
-        let mut start = self.tx_collector.sample();
+        let start = self.tx_collector.sample();
 
-        wrs[0].post_on(&self.qp);
-        // self.poll_cq(batch.len());
-        self.qp.scq().poll_some(1, true);
+        wrs[0].post_on(&self.qp).expect("failed to post");
+        self.qp.scq().poll_some(1, true).expect("failed to poll");
 
         let rtt = self.tx_collector.sample() - start;
 
@@ -183,9 +157,7 @@ impl Adaptor {
     /// received messages, handling any necessary parsing and buffer management.
     pub fn read(&self) -> Vec<Message> {
         let mut msgs = vec![];
-        let mut rng = rand::rng();
         let msg_size = self.config.test.msg_size;
-        let rx_depth = self.config.test.rx_depth;
 
         let wcs = match self.qp.rcq().poll_some(1, false) {
             Ok(wcs) => wcs,
@@ -259,11 +231,9 @@ impl Adaptor {
         let tx = Arc::new(send_mr);
         let rx = Arc::new(recv_mr);
 
-        let rx_collector = SampleCollector::new(0, "rx_times.csv");
         let tx_collector = SampleCollector::new(0, "tx_times.csv");
 
         tx_collector.record_start();
-        rx_collector.record_start();
 
         let adaptor = Self {
             config,
@@ -273,7 +243,6 @@ impl Adaptor {
             tx,
             rx,
 
-            rx_collector,
             tx_collector,
         };
 
@@ -347,17 +316,16 @@ impl Drop for Adaptor {
     fn drop(&mut self) {
         self.tx_collector.record_end();
         let duration = self.tx_collector.duration();
-        let median_latency = self.tx_collector.quantile_latency(50.0);
+        let median_latency = self.tx_collector.quantile_latency(0.5);
         info!(
-            "Average [Send] latency reported by collector: {:?} in {:?}",
+            "50th latency reported by collector: {:?} in {:?}",
             median_latency, duration
         );
 
-        let duration = self.rx_collector.duration();
-        let mean_latency = self.rx_collector.mean_latency();
+        let tail_latency = self.tx_collector.quantile_latency(0.999);
         info!(
-            "Average [Recv] latency reported by collector: {:?} in {:?}",
-            mean_latency, duration
+            "99.9th latency reported by collector: {:?} in {:?}",
+            tail_latency, duration
         );
 
         let msg_size = self.config.test.msg_size;
@@ -369,11 +337,11 @@ impl Drop for Adaptor {
             debug!("Network (RDMA): Deallocating hugepages");
             let layout = Layout::array::<u8>(msg_size * tx_depth)
                 .expect("Network (RDMA): Failed to create layout");
-            unsafe { hugepage_rs::dealloc(self.tx_buf, layout) };
+            hugepage_rs::dealloc(self.tx_buf, layout);
 
             let layout = Layout::array::<u8>(msg_size * rx_depth)
                 .expect("Network (RDMA): Failed to create layout");
-            unsafe { hugepage_rs::dealloc(self.rx_buf, layout) };
+            hugepage_rs::dealloc(self.rx_buf, layout);
         }
 
         #[cfg(not(feature = "hugepage"))]

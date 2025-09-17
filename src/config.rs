@@ -141,33 +141,12 @@ pub(crate) struct BWControl {
     pub(crate) limiter: bool,
 }
 
-fn default_client_threads() -> RDMAThreads {
-    RDMAThreads {
-        post_send: 1,
-        poll_recv: 1,
-        poll_send: 1,
-    }
-}
-fn default_server_threads() -> RDMAThreads {
-    RDMAThreads {
-        post_send: 1,
-        poll_recv: 1,
-        poll_send: 1,
-    }
-}
-
 #[derive(Deserialize, Debug, Clone)]
 #[serde(default)]
 pub(crate) struct Config {
     pub(crate) device: Device,
     pub(crate) connection: Connection,
     pub(crate) test: Test,
-
-    #[serde(default = "default_client_threads")]
-    pub(crate) client_threads: RDMAThreads,
-    #[serde(default = "default_server_threads")]
-    pub(crate) server_threads: RDMAThreads,
-
     pub(crate) output: Output,
     pub(crate) sample: Sample,
     pub(crate) bw_control: BWControl,
@@ -179,8 +158,6 @@ impl Default for Config {
             device: Device::default(),
             connection: Connection::default(),
             test: Test::default(),
-            client_threads: default_client_threads(),
-            server_threads: default_server_threads(),
             output: Output::default(),
             sample: Sample::default(),
             bw_control: BWControl::default(),

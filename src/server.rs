@@ -80,7 +80,6 @@ impl Server {
         let tx = Arc::new(send_mr);
         let rx = Arc::new(recv_mr);
 
-        let rx_collector = SampleCollector::new(0, "server_rx_times.csv");
         let tx_collector = SampleCollector::new(0, "server_tx_times.csv");
 
         let adaptor = Adaptor {
@@ -91,7 +90,6 @@ impl Server {
             tx,
             rx,
             tx_collector,
-            rx_collector,
         };
 
         match adaptor.setup() {

@@ -24,12 +24,12 @@ use crate::message::Message;
 use crate::Config;
 use anyhow::{bail, Context};
 use rand::Rng;
-use rrddmma::prelude::{Cq, Nic, Pd, Qp, QpCaps, QpType};
-use rrddmma::prelude::{Mr, SendWr};
-use rrddmma::rdma::mr::Permission;
-use rrddmma::{ctrl, prelude::Slicing};
+use rrddmma::lo::mr::Permission;
+use rrddmma::lo::prelude::{Cq, Nic, Pd, Qp, QpCaps, QpType};
+use rrddmma::lo::prelude::{Mr, SendWr};
+use rrddmma::{ctrl, lo::prelude::Slicing};
 use spdlog::{debug, info};
-use std::alloc::{self, Layout};
+use std::alloc::Layout;
 use std::net::Ipv4Addr;
 use std::ptr;
 use std::str::FromStr;
@@ -69,7 +69,7 @@ impl Adaptor {
     pub fn poll_cq(&self, num: usize) {
         let mut remaining = num;
         loop {
-            let polled = match self.qp.scq().poll_some(remaining as u32) {
+            let polled = match self.qp.scq().poll_some(remaining, true) {
                 Ok(wcs) => wcs.len(),
                 Err(e) => panic!("Network (RDMA): Failed to poll Send CQ: {:?}", e),
             };
@@ -111,25 +111,27 @@ impl Adaptor {
                 panic!("Network (RDMA): Hugepage allocation failed");
             }
 
-            return ptr;
+            ptr
         }
 
-        let ptr = unsafe { alloc::alloc(layout) };
+        #[cfg(not(feature = "hugepage"))]
+        {
+            let ptr = unsafe { alloc::alloc(layout) };
 
-        if ptr.is_null() {
-            panic!("Network (RDMA): Standard buffer allocation failed");
+            if ptr.is_null() {
+                panic!("Network (RDMA): Standard buffer allocation failed");
+            }
+
+            ptr
         }
-
-        ptr
     }
 
     /// Writes a batch of messages to the RDMA network.
     ///
     /// This function sends a series of messages over RDMA, managing the necessary
     /// work requests and handling the completion notifications.
-    pub fn write(&self, batch: &[Message]) {
+    pub fn write(&mut self, batch: &[Message], warmup: bool) {
         let mut rng = rand::rng();
-        let sample_id: u64 = rng.random();
 
         let msg_size = self.config.test.msg_size;
 
@@ -164,16 +166,18 @@ impl Adaptor {
                 msg_size * batch.len(),
             );
         }
-        debug!("Agent: posting a send");
-        self.tx_collector.sample_start(sample_id);
+        let mut start = 0;
+        if !warmup {
+            start = self.tx_collector.sample();
+        }
 
-        wrs[0]
-            .post_on(&self.qp)
-            .expect("Network (RDMA) post a Send request");
-        self.poll_cq(batch.len());
+        wrs[0].post_on(&self.qp);
+        // self.poll_cq(batch.len());
+        self.qp.scq().poll_some(1, true);
 
-        self.tx_collector.sample_end(sample_id);
-        debug!("Agent: a send is polled");
+        if !warmup {
+            self.tx_collector.insert(self.tx_collector.sample() - start);
+        }
     }
 
     /// Reads a batch of messages from the RDMA network.
@@ -183,20 +187,15 @@ impl Adaptor {
     pub fn read(&self) -> Vec<Message> {
         let mut msgs = vec![];
         let mut rng = rand::rng();
-        let sample_id: u64 = rng.random();
         let msg_size = self.config.test.msg_size;
         let rx_depth = self.config.test.rx_depth;
 
-        self.rx_collector.sample_start(sample_id);
-
-        let wcs = match self.qp.rcq().poll_some(rx_depth as u32) {
+        let wcs = match self.qp.rcq().poll_some(rx_depth, true) {
             Ok(wcs) => wcs,
             Err(e) => panic!("Network (RDMA): Failed to read: {:?}", e),
         };
 
-        let mut counter = 0;
         for wc in wcs {
-            self.rx_collector.sample_end(sample_id);
             let _recv_size = match wc.ok() {
                 Ok(n) => {
                     assert_eq!(n, msg_size);
@@ -219,8 +218,7 @@ impl Adaptor {
             };
 
             self.post_recv(index);
-            msgs[counter] = message;
-            counter += 1;
+            msgs.push(message);
         }
         msgs
     }
@@ -264,8 +262,11 @@ impl Adaptor {
         let tx = Arc::new(send_mr);
         let rx = Arc::new(recv_mr);
 
-        let rx_collector = Arc::new(SampleCollector::new(0));
-        let tx_collector = Arc::new(SampleCollector::new(0));
+        let rx_collector = Arc::new(SampleCollector::new(0, "rx_times.csv"));
+        let tx_collector = Arc::new(SampleCollector::new(0, "tx_times.csv"));
+
+        tx_collector.record_start();
+        rx_collector.record_start();
 
         let adaptor = Self {
             config,
@@ -309,10 +310,7 @@ impl Adaptor {
         let ib_port = config.device.ib_port;
 
         info!("Network (RDMA) Searching for {dev}");
-        let Nic { context, ports } = Nic::finder()
-            .dev_name(dev)
-            .probe()
-            .context("probe rdma device")?;
+        let Nic { context, ports } = Nic::open(dev).context("probe rdma device")?;
         info!("Network (RDMA) Device {} recognized", dev);
 
         let pd = Pd::new(&context).context("pd allocated")?;
@@ -350,11 +348,13 @@ impl Drop for Adaptor {
     /// This function deallocates any memory buffers and logs performance metrics
     /// before the RDMA adaptor is dropped.
     fn drop(&mut self) {
+        self.tx_collector.record_end();
+        self.tx_collector.dump_csv();
         let duration = self.tx_collector.duration();
-        let mean_latency = self.tx_collector.mean_latency();
+        let median_latency = self.tx_collector.quantile_latency(50.0);
         info!(
             "Average [Send] latency reported by collector: {:?} in {:?}",
-            mean_latency, duration
+            median_latency, duration
         );
 
         let duration = self.rx_collector.duration();

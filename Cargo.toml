@@ -8,7 +8,7 @@ anyhow = "1.0.97"
 spdlog-rs = "0.4.1"
 clap = { version = "=4.5.46", features = ["derive"] }
 toml = "0.9.5"
-rrddmma = { git = "https://github.com/mrkatebzadeh/rrddmma.git", branch = "master" }
+rrddmma = { git = "https://github.com/IcicleF/rrddmma", branch = "master" }
 core_affinity = "0.8.3"
 hugepage-rs = "0.1.0"
 serde = { version = "1.0", features = ["derive"]}
@@ -17,5 +17,8 @@ thread-priority = "1.2.0"
 dashmap = "6.1.0"
 rand = "0.9.2"
 
-[workspace.features]
+[features]
 hugepage = []
+
+[profile.release]
+opt-level = 3

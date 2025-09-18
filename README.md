@@ -38,7 +38,7 @@ cargo build --release
 
 ## Configuration ##
 
-RPerf by default locates a `config.toml` file in the working directory. This file contains test parameters. Change the parameters according to what you desire.
+RPerf by default locates a `config.toml` file in the working directory. This file contains test parameters. Change the parameters according to what you desire. See the example for a simple loopback test.
 
 ## Running Tests ##
 The simplest way to run with default settings, on the server and clients:
@@ -47,6 +47,23 @@ The simplest way to run with default settings, on the server and clients:
 ```
 Make sure *config.toml* file on each node has the proper values for __is_agent__ and __server_addr__ parameters.
 
+
+## Cite This Work ##
+
+If you use RPerf in your research, please cite the following paper:
+
+```bibtex
+@INPROCEEDINGS{9238625,
+  author={Katebzadeh, M. R. Siavash and Costa, Paolo and Grot, Boris},
+  booktitle={2020 IEEE International Symposium on Performance Analysis of Systems and Software (ISPASS)},
+  title={Evaluation of an InfiniBand Switch: Choose Latency or Bandwidth, but Not Both},
+  year={2020},
+  volume={},
+  number={},
+  pages={180-191},
+  doi={10.1109/ISPASS48437.2020.00033}
+}
+```
 
 ## Contacts ##
 

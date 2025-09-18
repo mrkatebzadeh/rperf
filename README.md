@@ -1,6 +1,6 @@
 -------------------------------------------------------------------------------
 
-# 🚀 RPerf: Accurate Latency Measurement Framework for RDMA 📈
+# RPerf: Accurate Latency Measurement Framework for RDMA 📈
 
 -------------------------------------------------------------------------------
 
@@ -83,7 +83,7 @@ If you use RPerf in your research, please cite the following paper:
 }
 ```
 
-## 📞 Contacts
+## ⚠️ Disclaimer
 
 This implementation is a research prototype that shows the feasibility of accurate latency measurement and has been tested on a cluster equipped with _Mellanox MT27700 ConnectX-4_ HCAs and a _Mellanox SX6012_ IB switch. It is NOT production quality code. The technical details can be found [here](https://ease-lab.github.io/ease_website/pubs/RPERF_ISPASS20.pdf). If you have any questions, please raise issues on Github or contact the authors below.
 

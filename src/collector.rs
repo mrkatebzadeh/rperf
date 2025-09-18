@@ -185,7 +185,7 @@ impl SampleCollector {
     /// Calculates the difference between wire and loop RTT for each sample
     /// and prints a histogram displaying the frequency of each latency value.
     #[allow(unused)]
-    pub fn print_latency_histogram(&self) {
+    pub fn print_histogram(&self) {
         let freq = counter_freq();
         let latencies = self.samples.clone();
         let mut histogram: BTreeMap<u64, u32> = BTreeMap::new();

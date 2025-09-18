@@ -38,7 +38,7 @@ cargo build --release
 
 ## Configuration ##
 
-RPerf by default locates a `config.toml` file in the working directory. This file contains test parameters. Change the parameters according to what you desire. See the example for a simple loopback test.
+RPerf by default locates a `config.toml` file in the working directory. This file contains test parameters. Change the parameters according to what you desire. See the [example](./example/README.md) for a simple loopback test.
 
 ## Running Tests ##
 The simplest way to run with default settings, on the server and clients:

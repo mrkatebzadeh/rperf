@@ -57,8 +57,6 @@ impl Probe {
     /// Returns `Ok(())` on success, or an error if initialization or execution fails.
     pub(crate) fn start(&mut self) -> anyhow::Result<()> {
         let mut config = self.config.clone();
-        let running = Arc::new(AtomicBool::new(true));
-        let r = running.clone();
         let srv_handler = thread::spawn(move || {
             info!("Starting probe loopback server");
             config.is_agent = true;
@@ -67,7 +65,7 @@ impl Probe {
             let loopback_srv = Server::bind(config).unwrap();
             info!("Probe loopback server connected");
             let loopback_adaptor = loopback_srv.accept().unwrap();
-            while r.load(Ordering::Relaxed) {
+            loop {
                 let _ = loopback_adaptor.read();
             }
         });
@@ -114,7 +112,6 @@ impl Probe {
             tail.unwrap(),
         );
 
-        running.store(false, Ordering::Relaxed);
         std::mem::drop(srv_handler);
         Ok(())
     }

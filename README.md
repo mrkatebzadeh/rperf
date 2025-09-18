@@ -4,7 +4,6 @@
 
 -------------------------------------------------------------------------------
 
-
 ## 🎯 Overview
 
 This package provides an accurate benchmarking tool for **RDMA**-based networks, implemented in Rust.
@@ -27,8 +26,37 @@ Then you can build the package using Cargo:
 ```sh
 cargo build --release
 ```
+If you want to use hugepages:
+```sh
+cargo build --release --features hugepage
+```
 
 ## ⚙️ Configuration
+
+### Hugepages Settings
+
+To configure hugepages for optimal performance, follow these steps:
+
+1. **Run Subnet Manager**
+   - Start the subnet manager on one of the nodes:
+     ```sh
+     /etc/init.d/opensmd start
+     ```
+
+2. **Apply Hugepages Configuration on Every Node**
+   - Execute the following commands to set hugepages:
+     ```sh
+     echo 8192 | tee /sys/devices/system/node/node0/hugepages/hugepages-2048kB/nr_hugepages /sys/devices/system/node/node1/hugepages/hugepages-2048kB/nr_hugepages > /dev/null
+     echo 10000000001 | tee /proc/sys/kernel/shmmax /proc/sys/kernel/shmall > /dev/null
+     ```
+
+3. **Verify Configuration**
+   - Check that the changes have been applied successfully using:
+     ```sh
+     cat /sys/devices/system/node/node0/hugepages/hugepages-2048kB/nr_hugepages
+     ```
+
+   > **Note:** These changes are temporary and need to be reapplied after a reboot.
 
 RPerf by default locates a `config.toml` file in the working directory. This file contains test parameters. Change the parameters according to what you desire. See the [example](./example/README.md) for a simple loopback test.
 

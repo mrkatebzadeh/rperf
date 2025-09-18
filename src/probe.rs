@@ -31,14 +31,30 @@ use spdlog::info;
 
 use crate::{adaptor::Adaptor, message::Message, server::Server, Config};
 
+/// The `Probe` struct is responsible for testing network performance by simulating
+/// both server and client operations. It handles the setup, execution, and metrics
+/// collection for performance tests.
 pub(crate) struct Probe {
     config: Config,
 }
 impl Probe {
+    /// Creates a new instance of `Probe` with the given configuration.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - A configuration object specifying the test parameters.
     pub(crate) fn new(config: Config) -> Self {
         Self { config }
     }
 
+    /// Starts the probe, setting up and executing network tests.
+    ///
+    /// This function initializes the server and adaptor, executes warmup iterations,
+    /// performs the main test iterations, and collects latency metrics.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(())` on success, or an error if initialization or execution fails.
     pub(crate) fn start(&mut self) -> anyhow::Result<()> {
         let mut config = self.config.clone();
         let running = Arc::new(AtomicBool::new(true));

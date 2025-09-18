@@ -1,0 +1,12 @@
+is_agent = false
+
+[device]
+name = "mlx5_2"
+ib_port = 0
+
+[test]
+rx_depth = 100
+iterations = 1000000
+
+[connection]
+server_addr = "0.0.0.0"

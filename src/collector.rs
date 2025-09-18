@@ -30,7 +30,15 @@ use std::{
     time::{Duration, Instant},
 };
 
-
+/// Reads the current timestamp counter value.
+///
+/// Supports the following architectures:
+/// - x86_64
+/// - aarch64
+/// - arm
+///
+/// # Returns
+/// A `u64` value representing the current timestamp counter.
 #[inline]
 pub fn rdtsc() -> u64 {
     #[cfg(target_arch = "x86_64")]
@@ -72,21 +80,35 @@ pub fn rdtsc() -> u64 {
     compile_error!("rdtsc() not supported on this architecture");
 }
 
+/// Returns the frequency of the counter in Hz.
+///
+/// Uses `calcmhz` crate to calculate the CPU frequency or defaults to 1000 MHz.
 #[inline]
 fn counter_freq() -> u64 {
     calcmhz::mhz().unwrap_or(1000.0) as u64 * 1_000_000
 }
 
+/// Converts cycles to nanoseconds based on the given frequency.
+///
+/// # Arguments
+///
+/// * `cycles` - The number of cycles.
+/// * `freq` - The frequency of the counter in Hz.
+///
+/// # Returns
+/// The equivalent duration in nanoseconds as a `u64`.
 fn cycles_to_nanos(cycles: u64, freq: u64) -> u64 {
     cycles.saturating_mul(1_000_000_000) / freq
 }
 
+/// Represents a single latency sample with wire and loop round-trip times.
 #[derive(Clone)]
 pub struct Sample {
     pub wire_rtt: u64,
     pub loop_rtt: u64,
 }
 
+/// Collects and manages latency samples, providing statistical analysis.
 #[allow(unused)]
 #[derive(Clone)]
 pub struct SampleCollector {
@@ -98,6 +120,12 @@ pub struct SampleCollector {
 }
 
 impl SampleCollector {
+    /// Creates a new `SampleCollector` with the specified sample size and filename.
+    ///
+    /// # Arguments
+    ///
+    /// * `size` - The maximum number of samples.
+    /// * `filename` - The name of the file for storing samples.
     #[allow(unused)]
     pub fn new(size: u64, filename: impl AsRef<str>) -> Self {
         Self {
@@ -109,6 +137,7 @@ impl SampleCollector {
         }
     }
 
+    /// Records the start time of the sampling.
     #[allow(unused)]
     pub fn record_start(&self) {
         let mut lock = self
@@ -121,6 +150,7 @@ impl SampleCollector {
         }
     }
 
+    /// Records the end time of the sampling.
     #[allow(unused)]
     pub fn record_end(&self) {
         let mut lock = self
@@ -131,12 +161,18 @@ impl SampleCollector {
         *lock = Some(Instant::now());
     }
 
+    /// Samples the current timestamp counter value.
     #[allow(unused)]
     #[inline(always)]
     pub fn sample(&self) -> u64 {
         rdtsc()
     }
 
+    /// Inserts a new latency sample into the collector.
+    ///
+    /// # Arguments
+    ///
+    /// * `sample` - A tuple containing wire RTT and loop RTT.
     pub fn insert(&mut self, sample: (u64, u64)) {
         self.samples.push(Sample {
             wire_rtt: sample.0,
@@ -144,6 +180,10 @@ impl SampleCollector {
         });
     }
 
+    /// Prints a histogram of latency samples.
+    ///
+    /// Calculates the difference between wire and loop RTT for each sample
+    /// and prints a histogram displaying the frequency of each latency value.
     #[allow(unused)]
     pub fn print_latency_histogram(&self) {
         let freq = counter_freq();
@@ -162,6 +202,15 @@ impl SampleCollector {
         }
     }
 
+    /// Calculates the mean latency from samples.
+    ///
+    /// Computes the average difference between wire and loop RTT, converting
+    /// cycles to nanoseconds based on the counter frequency.
+    ///
+    /// # Returns
+    ///
+    /// An `Option` containing the mean latency as `std::time::Duration`, or `None`
+    /// if there are no samples.
     #[allow(unused)]
     pub fn mean_latency(&self) -> Option<std::time::Duration> {
         let freq = counter_freq();
@@ -178,6 +227,19 @@ impl SampleCollector {
         Some(std::time::Duration::from_nanos(nanos as u64))
     }
 
+    /// Calculates the quantile latency from samples.
+    ///
+    /// Computes the specified quantile of the difference between wire and loop RTT,
+    /// converting cycles to nanoseconds based on the counter frequency.
+    ///
+    /// # Arguments
+    ///
+    /// * `quantile` - The quantile to compute (e.g., 0.5 for median).
+    ///
+    /// # Returns
+    ///
+    /// An `Option` containing the quantile latency as `std::time::Duration`, or `None`
+    /// if there are no samples.
     #[allow(unused)]
     pub fn quantile_latency(&self, quantile: f64) -> Option<std::time::Duration> {
         let freq = counter_freq();
@@ -198,6 +260,14 @@ impl SampleCollector {
         Some(std::time::Duration::from_nanos(nanos))
     }
 
+    /// Calculates the throughput based on the number of operations and duration.
+    ///
+    /// Computes the throughput as millions of operations per second.
+    ///
+    /// # Returns
+    ///
+    /// An `Option` containing the throughput in Mops, or `None` if duration
+    /// cannot be determined.
     #[allow(unused)]
     pub fn throughput(&self) -> Option<f64> {
         let ops = self.size.load(Ordering::Acquire);
@@ -211,6 +281,12 @@ impl SampleCollector {
         None
     }
 
+    /// Calculates the total duration of the sampling period.
+    ///
+    /// # Returns
+    ///
+    /// An `Option` containing the duration as `Duration`, or `None` if
+    /// start or end times are not recorded.
     #[allow(unused)]
     pub fn duration(&self) -> Option<Duration> {
         let start = self.start.lock().expect("Sample: Failed to lock for start");
@@ -223,6 +299,14 @@ impl SampleCollector {
             None
         }
     }
+    /// Dumps the collected samples to a CSV file.
+    ///
+    /// Writes the wire RTT, loop RTT, and their difference to a CSV file
+    /// specified by the `filename`.
+    ///
+    /// # Returns
+    ///
+    /// An `anyhow::Result<()>`, indicating success or failure of the file operation.
     pub fn dump_csv(&self) -> anyhow::Result<()> {
         let filename = &self.filename;
         let file = File::create(filename.as_str())?;

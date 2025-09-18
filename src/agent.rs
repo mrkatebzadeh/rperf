@@ -23,14 +23,31 @@ use crate::{server::Server, Config};
 use spdlog::info;
 use std::thread;
 
+/// Represents an agent responsible for managing network configurations and connections.
+///
+/// The `Agent` struct interacts with the network `Server`, handling network adaptor
+/// acceptance and configuration.
 pub(crate) struct Agent {
     config: Config,
 }
 impl Agent {
+    /// Creates a new `Agent` instance with the given configuration.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - A `Config` struct that specifies the configuration for the agent.
     pub(crate) fn new(config: Config) -> Self {
         Self { config }
     }
 
+    /// Starts the agent, binding to the server and accepting network adaptors.
+    ///
+    /// This function runs in a loop, accepting connections and spawning a new thread
+    /// for each network adaptor to handle its operations.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(())` on success, or an error if the server fails to bind or accept an adaptor.
     pub(crate) fn start(&mut self) -> anyhow::Result<()> {
         info!("Agent: server binding.");
         let server = Server::bind(self.config.clone())?;

@@ -58,8 +58,6 @@ If you use RPerf in your research, please cite the following paper:
   booktitle={2020 IEEE International Symposium on Performance Analysis of Systems and Software (ISPASS)},
   title={Evaluation of an InfiniBand Switch: Choose Latency or Bandwidth, but Not Both},
   year={2020},
-  volume={},
-  number={},
   pages={180-191},
   doi={10.1109/ISPASS48437.2020.00033}
 }

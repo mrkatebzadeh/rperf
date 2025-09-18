@@ -19,13 +19,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use std::{
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    },
-    thread,
-};
+use std::thread;
 
 use spdlog::info;
 
@@ -57,6 +51,8 @@ impl Probe {
     /// Returns `Ok(())` on success, or an error if initialization or execution fails.
     pub(crate) fn start(&mut self) -> anyhow::Result<()> {
         let mut config = self.config.clone();
+        let test_switch = config.test_switch;
+
         let srv_handler = thread::spawn(move || {
             info!("Starting probe loopback server");
             config.is_agent = true;
@@ -90,7 +86,12 @@ impl Probe {
         info!("Test started");
         for id in 0..total_iters {
             let id = id as u64;
-            let loop_rtt = loopback_adaptor.get_rtt(&[Message::new(msg_size, id)]);
+
+            let loop_rtt = if test_switch {
+                loopback_adaptor.get_rtt(&[Message::new(msg_size, id)])
+            } else {
+                0
+            };
             let wire_rtt = wire_adaptor.get_rtt(&[Message::new(msg_size, id)]);
 
             wire_adaptor.tx_collector.insert((wire_rtt, loop_rtt));

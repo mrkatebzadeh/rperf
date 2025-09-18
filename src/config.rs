@@ -151,6 +151,7 @@ pub(crate) struct Config {
     pub(crate) sample: Sample,
     pub(crate) bw_control: BWControl,
     pub(crate) is_agent: bool,
+    pub(crate) test_switch: bool,
 }
 impl Default for Config {
     fn default() -> Self {
@@ -162,6 +163,7 @@ impl Default for Config {
             sample: Sample::default(),
             bw_control: BWControl::default(),
             is_agent: false,
+            test_switch: false,
         }
     }
 }

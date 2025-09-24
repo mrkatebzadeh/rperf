@@ -47,7 +47,6 @@ To configure hugepages for optimal performance, follow these steps:
    - Execute the following commands to set hugepages:
      ```sh
      echo 8192 | tee /sys/devices/system/node/node0/hugepages/hugepages-2048kB/nr_hugepages /sys/devices/system/node/node1/hugepages/hugepages-2048kB/nr_hugepages > /dev/null
-     echo 10000000001 | tee /proc/sys/kernel/shmmax /proc/sys/kernel/shmall > /dev/null
      ```
 
 3. **Verify Configuration**
